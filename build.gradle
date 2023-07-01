@@ -1,0 +1,94 @@
+plugins {
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("io.micronaut.application") version "3.7.10"
+}
+
+version = "0.1"
+group = "rest2soap"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor("io.micronaut:micronaut-http-validation")
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.micronaut:micronaut-jackson-databind")
+    implementation("jakarta.annotation:jakarta.annotation-api")
+    compileOnly("org.graalvm.nativeimage:svm")
+    runtimeOnly("ch.qos.logback:logback-classic")
+
+    //jag
+    implementation 'com.sun.xml.bind:jaxb-impl:4.0.3'
+    implementation 'com.sun.xml.ws:jaxws-ri:2.3.2'
+    implementation 'javax.xml.bind:jaxb-api:2.3.0'
+    implementation 'javax.activation:activation:1.1.1'
+}
+
+application {
+    mainClass.set("rest2soap.Application")
+}
+java {
+    sourceCompatibility = JavaVersion.toVersion("17")
+    targetCompatibility = JavaVersion.toVersion("17")
+}
+
+graalvmNative.toolchainDetection = false
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("rest2soap.*")
+    }
+}
+
+//jag
+configurations {
+    jaxws
+}
+//jag
+dependencies { jaxws 'com.sun.xml.ws:jaxws-tools:2.2.6' }
+
+tasks.register("wsdl2Java"){
+    group 'build'
+    if(!file("./build/wsdlToJava/soap-services-client/java").exists()) {
+
+        def WSDL_URL = "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL"
+
+        def rootDir = file("build/wsdlToJava/soap-services-client")
+        def javaDir = file("${rootDir}/java")
+        def classesDir = file("${rootDir}/classes")
+
+        doLast{
+            classesDir.mkdirs()
+            javaDir.mkdirs()
+
+            ant {
+                taskdef(name: 'wsimport',
+                        classname: 'com.sun.tools.ws.ant.WsImport',
+                        classpath: configurations.jaxws.asPath)
+                wsimport(keep: true,
+                        destdir: classesDir,
+                        sourcedestdir: javaDir,
+                        extension: "true",
+                        verbose: "true",
+                        quiet: "false",
+                        xnocompile: "true",
+                        xendorsed: true,
+                        wsdl: WSDL_URL)
+                        {
+                            binding(dir:file("src/main/resources"),includes:"bindings.xjb")
+                            xjcarg(value: "-XautoNameResolution")
+                        }
+            }
+        }
+    }
+
+}
+
+tasks.getByName("compileJava").dependsOn('wsdl2Java')
+
+sourceSets.main.java.srcDirs += file('build/wsdlToJava/soap-services-client/java')
+
+

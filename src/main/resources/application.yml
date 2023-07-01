@@ -1,0 +1,7 @@
+micronaut:
+  application:
+    name: rest2soap
+netty:
+  default:
+    allocator:
+      max-order: 3
