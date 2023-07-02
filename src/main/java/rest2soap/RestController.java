@@ -5,6 +5,7 @@ import io.micronaut.http.annotation.Get;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 
 @Controller
 public class RestController {
@@ -23,5 +24,10 @@ public class RestController {
     @Get("/numberToDollars/{number}")
     String numberToDollars(BigDecimal number){
         return soapService.numberToDollars(number);
+    }
+
+    @Get("/continents")
+    List<String>getContinents(){
+        return soapService.getContinents();
     }
 }

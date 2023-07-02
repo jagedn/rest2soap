@@ -54,7 +54,10 @@ tasks.register("wsdl2Java"){
     group 'build'
     if(!file("./build/wsdlToJava/soap-services-client/java").exists()) {
 
-        def WSDL_URL = "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL"
+        def WSDL_URL = [
+                "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL",
+                "http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL"
+        ]
 
         def rootDir = file("build/wsdlToJava/soap-services-client")
         def javaDir = file("${rootDir}/java")
@@ -64,23 +67,25 @@ tasks.register("wsdl2Java"){
             classesDir.mkdirs()
             javaDir.mkdirs()
 
-            ant {
-                taskdef(name: 'wsimport',
-                        classname: 'com.sun.tools.ws.ant.WsImport',
-                        classpath: configurations.jaxws.asPath)
-                wsimport(keep: true,
-                        destdir: classesDir,
-                        sourcedestdir: javaDir,
-                        extension: "true",
-                        verbose: "true",
-                        quiet: "false",
-                        xnocompile: "true",
-                        xendorsed: true,
-                        wsdl: WSDL_URL)
-                        {
-                            binding(dir:file("src/main/resources"),includes:"bindings.xjb")
-                            xjcarg(value: "-XautoNameResolution")
-                        }
+            WSDL_URL.each { wsdl ->
+                ant {
+                    taskdef(name: 'wsimport',
+                            classname: 'com.sun.tools.ws.ant.WsImport',
+                            classpath: configurations.jaxws.asPath)
+                    wsimport(keep: true,
+                            destdir: classesDir,
+                            sourcedestdir: javaDir,
+                            extension: "true",
+                            verbose: "true",
+                            quiet: "false",
+                            xnocompile: "true",
+                            xendorsed: true,
+                            wsdl: wsdl)
+                            {
+                                binding(dir: file("src/main/resources"), includes: "bindings.xjb")
+                                xjcarg(value: "-XautoNameResolution")
+                            }
+                }
             }
         }
     }
