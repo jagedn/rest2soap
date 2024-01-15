@@ -5,6 +5,7 @@ import io.micronaut.http.annotation.Get;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.rmi.RemoteException;
 import java.util.List;
 
 @Controller
@@ -17,17 +18,17 @@ public class RestController {
     }
 
     @Get("/numberToWords/{number}")
-    String numberToWords(BigInteger number){
+    String numberToWords(BigInteger number) throws RemoteException {
         return soapService.numberToWords(number);
     }
 
     @Get("/numberToDollars/{number}")
-    String numberToDollars(BigDecimal number){
+    String numberToDollars(BigDecimal number) throws RemoteException {
         return soapService.numberToDollars(number);
     }
 
     @Get("/continents")
-    List<String>getContinents(){
+    List<String>getContinents() throws RemoteException {
         return soapService.getContinents();
     }
 }

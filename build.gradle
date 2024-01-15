@@ -1,6 +1,8 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("io.micronaut.application") version "3.7.10"
+    //jag
+    id 'com.intershop.gradle.wsdl' version '3.2.2'
 }
 
 version = "0.1"
@@ -45,55 +47,59 @@ micronaut {
 
 //jag
 configurations {
-    jaxws
+    wsdlAxis2.extendsFrom(compile)
 }
+
 //jag
-dependencies { jaxws 'com.sun.xml.ws:jaxws-tools:2.2.6' }
+dependencies {
+    implementation 'org.apache.axis2:axis2-adb:1.7.9'
+    implementation 'org.apache.axis2:axis2-kernel:1.7.9'
+    implementation 'org.apache.axis2:axis2-transport-local:1.7.9'
+    implementation 'org.apache.axis2:axis2-transport-http:1.7.9'
+}
 
-tasks.register("wsdl2Java"){
-    group 'build'
-    if(!file("./build/wsdlToJava/soap-services-client/java").exists()) {
-
-        def WSDL_URL = [
-                "https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL",
-                "http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL"
-        ]
-
-        def rootDir = file("build/wsdlToJava/soap-services-client")
-        def javaDir = file("${rootDir}/java")
-        def classesDir = file("${rootDir}/classes")
-
-        doLast{
-            classesDir.mkdirs()
-            javaDir.mkdirs()
-
-            WSDL_URL.each { wsdl ->
-                ant {
-                    taskdef(name: 'wsimport',
-                            classname: 'com.sun.tools.ws.ant.WsImport',
-                            classpath: configurations.jaxws.asPath)
-                    wsimport(keep: true,
-                            destdir: classesDir,
-                            sourcedestdir: javaDir,
-                            extension: "true",
-                            verbose: "true",
-                            quiet: "false",
-                            xnocompile: "true",
-                            xendorsed: true,
-                            wsdl: wsdl)
-                            {
-                                binding(dir: file("src/main/resources"), includes: "bindings.xjb")
-                                xjcarg(value: "-XautoNameResolution")
-                            }
-                }
-            }
+wsdl {
+    axis2 {
+        numbers {
+            wsdlFile = file("src/wsdls/NumberConversion.xml")
+            allPorts = true
+            databindingMethod = 'adb'
+            serverSide = false
+            generateAllClasses = true
+            unpackClasses = true
+        }
+        countries{
+            wsdlFile = file("src/wsdls/CountryInfoService.xml")
+            allPorts = true
+            databindingMethod = 'adb'
+            serverSide = false
+            generateAllClasses = true
+            unpackClasses = true
         }
     }
-
 }
 
-tasks.getByName("compileJava").dependsOn('wsdl2Java')
+// fix wrong directory
+tasks.getByName("axis2Wsdl2javaNumbers").doLast {
+    ant.move(
+            file:file('build/generated/wsdl2java/axis2/numbers/src/com').absolutePath,
+            tofile:file('build/generated/wsdl2java/axis2/numbers/com').absolutePath
+    )
+}
 
-sourceSets.main.java.srcDirs += file('build/wsdlToJava/soap-services-client/java')
+// fix wrong directory
+tasks.getByName("axis2Wsdl2javaCountries").doLast {
+    ant.move(
+            file:file('build/generated/wsdl2java/axis2/countries/src/org').absolutePath,
+            tofile:file('build/generated/wsdl2java/axis2/countries/org').absolutePath
+    )
+}
 
-
+run{
+    jvmArgs = ['-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.SimpleLog',
+               '-Dorg.apache.commons.logging.simplelog.showdatetime=true',
+               '-Dorg.apache.commons.logging.simplelog.showShortLogname=true',
+               '-Dorg.apache.commons.logging.simplelog.log.httpclient.wire=debug',
+               '-Dorg.apache.commons.logging.simplelog.log.org.apache.commons.httpclient=debug'
+            ]
+}
